@@ -12,31 +12,6 @@ interface Stats {
   byCat: Partial<Record<CategoryKey, number>>;
 }
 
-function Stat({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  sub: string;
-  accent?: string;
-}) {
-  return (
-    <div className="rounded-[10px] border border-[#ECEAE7] bg-white px-4 py-[14px]">
-      <div className="mb-[7px] text-[12.5px] text-[#8A857F]">{label}</div>
-      <div
-        className="mb-1.5 text-[27px] font-semibold leading-none tracking-[-0.02em]"
-        style={{ color: accent || "#37352F" }}
-      >
-        {value}
-      </div>
-      <div className="text-[11.5px] text-[#A8A29A]">{sub}</div>
-    </div>
-  );
-}
-
 function Section({
   title,
   icon: I,
@@ -69,8 +44,6 @@ export function Overview({
   onOpenApp: (app: string) => void;
   onGoQueue: () => void;
 }) {
-  const autoPct = Math.round((stats.auto / stats.total) * 100);
-
   const catRows = (Object.entries(stats.byCat) as [CategoryKey, number][]).sort(
     (a, b) => b[1] - a[1],
   );
@@ -92,23 +65,6 @@ export function Overview({
       <p className="m-0 mb-6 text-[13.5px] text-[#8A857F]">
         All apps · last 24 hours · 3 sources connected
       </p>
-
-      {/* stat cards */}
-      <div className="mb-[26px] grid grid-cols-3 gap-3">
-        <Stat label="Incoming requests" value={stats.total} sub="across 28 apps" />
-        <Stat
-          label="Needs attention"
-          value={stats.needs}
-          sub="new, unhandled"
-          accent="#B45309"
-        />
-        <Stat
-          label="Auto-handled"
-          value={`${autoPct}%`}
-          sub={`${stats.auto} of ${stats.total} resolved`}
-          accent="#0F766E"
-        />
-      </div>
 
       <div className="grid grid-cols-[1.15fr_0.85fr] gap-5">
         {/* needs attention / insights */}
