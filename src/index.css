@@ -1,0 +1,32 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+/* Design tokens ported from the prototype (Notion-like neutral palette) */
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --color-canvas: #fbfaf9;
+  --color-rail: #f7f6f4;
+  --color-ink: #37352f;
+  --color-ink-soft: #5f5b55;
+  --color-ink-muted: #8a857f;
+  --color-ink-faint: #a8a29a;
+  --color-line: #eceae7;
+  --color-line-soft: #f1efec;
+  --color-border-input: #e3e0dc;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
