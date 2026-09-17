@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_AUTOMATION } from "@/data/constants";
 import { REQUESTS } from "@/data/requests";
+import { fetchSupportDeskRequests } from "@/data/supportDesk";
 import type {
   AutomationConfig,
   CategoryKey,
@@ -18,13 +19,30 @@ import { Detail } from "@/components/Detail";
 export default function App() {
   const [view, setView] = useState<View>("overview");
   const [activeApp, setActiveApp] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [automation, setAutomation] =
     useState<AutomationConfig>(DEFAULT_AUTOMATION);
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState<CategoryKey | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceKey | null>(null);
   const [requests, setRequests] = useState<FeedbackRequest[]>(REQUESTS);
+
+  // Live ingestion for the in-app chat source: on success, support-desk
+  // reports replace the mock chat rows; on failure the mocks stay.
+  useEffect(() => {
+    let cancelled = false;
+    fetchSupportDeskRequests()
+      .then((live) => {
+        if (cancelled || live.length === 0) return;
+        setRequests((rs) => [...rs.filter((q) => q.source !== "chat"), ...live]);
+      })
+      .catch((err: unknown) => {
+        console.warn("support-desk ingestion failed; keeping mock chat data", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const pendingByApp = useMemo(() => {
     const m: Record<string, number> = {};
@@ -67,7 +85,7 @@ export default function App() {
     return { total, auto, needs, byCat };
   }, [requests]);
 
-  function act(id: number, status: RequestStatus) {
+  function act(id: string, status: RequestStatus) {
     setRequests((rs) => rs.map((q) => (q.id === id ? { ...q, status } : q)));
     setOpenId(null);
   }

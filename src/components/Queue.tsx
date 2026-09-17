@@ -47,7 +47,7 @@ export function Queue({
   setCatFilter: (v: CategoryKey | null) => void;
   sourceFilter: SourceKey | null;
   setSourceFilter: (v: SourceKey | null) => void;
-  onOpen: (id: number) => void;
+  onOpen: (id: string) => void;
 }) {
   const cats = Object.keys(CATEGORIES) as CategoryKey[];
   const sources = Object.keys(SOURCES) as SourceKey[];

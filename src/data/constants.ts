@@ -82,6 +82,7 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
 export const APPS: string[] = [
   "Gmoji",
   "Dynamic Lyrics",
+  "Lyrix",
   "OJO",
   "Beam",
   "radcam",
@@ -102,7 +103,7 @@ export const APPS: string[] = [
   "Hey Coach",
   "playground",
   "talkz",
-  "VR360",
+  "VR 360",
   "Water Eject",
   "Screen Recorder",
   "Dog Translator",

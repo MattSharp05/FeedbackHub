@@ -48,7 +48,8 @@ export interface StatusMeta {
 }
 
 export interface FeedbackRequest {
-  id: number;
+  /** Mock rows use numeric strings; ingested rows keep the source system's id. */
+  id: string;
   app: string;
   source: SourceKey;
   category: CategoryKey;
@@ -67,6 +68,8 @@ export interface FeedbackRequest {
   confidence: number;
   status: RequestStatus;
   ageMin: number;
+  /** Reply address when the source provides one (used at send time). */
+  replyEmail?: string | null;
 }
 
 export interface Insight {

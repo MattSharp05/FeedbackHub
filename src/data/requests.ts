@@ -25,7 +25,7 @@ const r = (
   translation: string | null = null,
   draftTranslation: string | null = null,
 ): FeedbackRequest => ({
-  id: ++_id,
+  id: String(++_id),
   app,
   source,
   category,

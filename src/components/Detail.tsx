@@ -56,7 +56,7 @@ export function Detail({
   open: FeedbackRequest;
   automation: AutomationConfig;
   onClose: () => void;
-  onAct: (id: number, status: RequestStatus) => void;
+  onAct: (id: string, status: RequestStatus) => void;
 }) {
   const [draft, setDraft] = useState(open.draft);
   const [editing, setEditing] = useState(false);

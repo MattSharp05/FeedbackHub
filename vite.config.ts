@@ -11,4 +11,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // The support-desk API sends no CORS headers, so the browser can't call
+      // it cross-origin; proxy it same-origin (vercel.json mirrors this).
+      "/support-desk": {
+        target: "https://support-desk-sandbox.onrender.com",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/support-desk/, ""),
+      },
+    },
+  },
 });
