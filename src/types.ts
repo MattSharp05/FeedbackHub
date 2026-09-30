@@ -33,6 +33,8 @@ export interface SourceMeta {
   deliverVia: string;
   /** Optional caution note (e.g. App Store replies are public). */
   note: string | null;
+  /** False until the source has a working ingestion adapter. */
+  live: boolean;
 }
 
 export interface CategoryMeta {
@@ -70,13 +72,6 @@ export interface FeedbackRequest {
   ageMin: number;
   /** Reply address when the source provides one (used at send time). */
   replyEmail?: string | null;
-}
-
-export interface Insight {
-  app: string;
-  text: string;
-  sev: "high" | "med" | "low";
-  cat: CategoryKey;
 }
 
 export type AutomationConfig = Record<CategoryKey, TrustMode>;

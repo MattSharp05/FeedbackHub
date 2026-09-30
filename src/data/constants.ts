@@ -29,6 +29,7 @@ export const SOURCES: Record<SourceKey, SourceMeta> = {
     sendLabel: "Approve & post response",
     deliverVia: "App Store developer response",
     note: "Public reply · one response per review",
+    live: true,
   },
   email: {
     label: "Email",
@@ -37,6 +38,7 @@ export const SOURCES: Record<SourceKey, SourceMeta> = {
     sendLabel: "Approve & send email",
     deliverVia: "Email reply to the user",
     note: null,
+    live: false,
   },
   chat: {
     label: "In-app chat",
@@ -45,6 +47,7 @@ export const SOURCES: Record<SourceKey, SourceMeta> = {
     sendLabel: "Approve & send reply",
     deliverVia: "In-app chat reply",
     note: null,
+    live: true,
   },
 };
 
@@ -81,6 +84,7 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
 
 export const APPS: string[] = [
   "Gmoji",
+  "Emojify",
   "Dynamic Lyrics",
   "Lyrix",
   "OJO",

@@ -15,7 +15,11 @@ A UI prototype of a unified feedback dashboard for a portfolio of ~28 mobile
 apps. Feedback arrives from three sources — App Store reviews, app emails, and
 in-app chat — and is consolidated into one queue where each item is
 auto-categorized, given a drafted reply, and either auto-sent or sent after
-human approval. **Mock data only. No backend. Nothing is really sent.**
+human approval. **Live data only — no mock data.** In-app chat is ingested from
+the support-desk API (`src/data/supportDesk/`), App Store reviews from Apple's
+public reviews feed (`src/data/appStore/`); Email is "coming soon" (`live:
+false` in `SOURCES`). No AI classification/drafting yet, and **nothing is
+really sent** — approve/send only changes local state.
 
 ## Non-negotiable architecture principle
 
@@ -70,7 +74,8 @@ down as props; child components are presentational and mutate only through
 callbacks. When adding features, follow this: lift state to `App`, derive with
 `useMemo`, pass handlers down.
 
-- **Source of truth:** `requests` (seeded from `REQUESTS`), plus `view`,
+- **Source of truth:** `requests` (starts empty; each adapter in `INGESTION`
+  appends its normalized rows on load, failures surface in a banner), plus `view`,
   `activeApp`, `openId`, `automation`, and the filter state (`query`,
   `catFilter`, `sourceFilter`).
 - **The only mutation** is `act(id, status)` — it maps over `requests` to change

@@ -143,7 +143,7 @@ export function Detail({
               className="mt-px shrink-0"
             />
             <span className="text-[13.5px] leading-[1.5] text-[#7A5B12]">
-              {open.action}
+              {open.action || "Not generated yet — AI triage isn't connected."}
             </span>
           </div>
 
@@ -166,7 +166,12 @@ export function Detail({
             />
           ) : (
             <div className="whitespace-pre-wrap rounded-[10px] border border-[#DCE6FB] bg-[#F4F7FE] px-[15px] py-[13px] text-sm leading-[1.55] text-[#2C3A57]">
-              {draft}
+              {draft || (
+                <span className="text-[#8A95AD]">
+                  No draft yet — AI drafting isn't connected. Use Edit reply to
+                  write one.
+                </span>
+              )}
             </div>
           )}
           {/* English gloss of the in-language reply, so an approver can read what

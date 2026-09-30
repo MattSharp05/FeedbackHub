@@ -82,6 +82,17 @@ export function Queue({
             const S = SOURCES[s];
             const I = S.icon;
             const on = sourceFilter === s;
+            if (!S.live) {
+              return (
+                <span
+                  key={s}
+                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-dashed border-[#E3E0DC] px-[11px] py-[5px] text-[12.5px] font-medium text-[#B8B3AC]"
+                >
+                  <I size={13} />
+                  {S.label} · Coming soon
+                </span>
+              );
+            }
             return (
               <button
                 key={s}

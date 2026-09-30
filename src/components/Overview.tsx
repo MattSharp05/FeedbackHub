@@ -1,9 +1,12 @@
-import { Inbox, AlertTriangle, TrendingUp, ChevronRight } from "lucide-react";
+import { Inbox, AlertTriangle, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { CATEGORIES } from "@/data/constants";
-import { INSIGHTS } from "@/data/requests";
+import { CATEGORIES, SOURCES } from "@/data/constants";
 import type { CategoryKey, FeedbackRequest } from "@/types";
-import { CatTag, Tile } from "./primitives";
+import { CatTag } from "./primitives";
+
+const SOURCE_LIST = Object.values(SOURCES);
+const LIVE_LABELS = SOURCE_LIST.filter((s) => s.live).map((s) => s.label);
+const SOON_LABELS = SOURCE_LIST.filter((s) => !s.live).map((s) => s.label);
 
 interface Stats {
   total: number;
@@ -36,12 +39,10 @@ function Section({
 
 export function Overview({
   stats,
-  onOpenApp,
   onGoQueue,
 }: {
   stats: Stats;
   requests: FeedbackRequest[];
-  onOpenApp: (app: string) => void;
   onGoQueue: () => void;
 }) {
   const catRows = (Object.entries(stats.byCat) as [CategoryKey, number][]).sort(
@@ -63,52 +64,18 @@ export function Overview({
         </button>
       </div>
       <p className="m-0 mb-6 text-[13.5px] text-[#8A857F]">
-        All apps · last 24 hours · 3 sources connected
+        All apps · {LIVE_LABELS.join(" + ")} connected
+        {SOON_LABELS.length > 0 && ` · ${SOON_LABELS.join(", ")} coming soon`}
       </p>
 
       <div className="grid grid-cols-[1.15fr_0.85fr] gap-5">
         {/* needs attention / insights */}
         <Section title="Needs attention" icon={AlertTriangle}>
-          {INSIGHTS.map((ins, i) => (
-            <button
-              key={i}
-              onClick={() => onOpenApp(ins.app)}
-              className="mb-2 flex w-full cursor-pointer items-start gap-[11px] rounded-[9px] border border-[#ECEAE7] bg-white px-3 py-3 text-left transition-colors"
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.borderColor = "#D9D5D0")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.borderColor = "#ECEAE7")
-              }
-            >
-              <span
-                className="mt-px h-[7px] w-[7px] shrink-0 rounded-full"
-                style={{
-                  background:
-                    ins.sev === "high"
-                      ? "#DC2626"
-                      : ins.sev === "med"
-                        ? "#F59E0B"
-                        : "#9CA3AF",
-                }}
-              />
-              <span className="flex-1">
-                <span className="mb-[3px] flex items-center gap-2">
-                  <Tile name={ins.app} size={17} />
-                  <span className="text-[13px] font-semibold">{ins.app}</span>
-                  <CatTag cat={ins.cat} />
-                </span>
-                <span className="text-[13px] leading-[1.45] text-[#5F5B55]">
-                  {ins.text}
-                </span>
-              </span>
-              <ChevronRight
-                size={15}
-                style={{ color: "#B8B3AC" }}
-                className="mt-0.5"
-              />
-            </button>
-          ))}
+          <div className="rounded-[9px] border border-dashed border-[#E3E0DC] bg-white px-3 py-4 text-[13px] leading-[1.45] text-[#8A857F]">
+            <span className="font-semibold text-[#5F5B55]">Coming soon.</span>{" "}
+            Emerging cross-app issues will be computed from live feedback once
+            AI classification is connected.
+          </div>
         </Section>
 
         {/* volume by category */}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_AUTOMATION } from "@/data/constants";
-import { REQUESTS } from "@/data/requests";
 import { fetchSupportDeskRequests } from "@/data/supportDesk";
+import { fetchAppStoreRequests } from "@/data/appStore";
 import type {
   AutomationConfig,
   CategoryKey,
@@ -16,6 +16,11 @@ import { Queue } from "@/components/Queue";
 import { Automation } from "@/components/Automation";
 import { Detail } from "@/components/Detail";
 
+const INGESTION: { label: string; load: () => Promise<FeedbackRequest[]> }[] = [
+  { label: "In-app chat", load: fetchSupportDeskRequests },
+  { label: "App Store", load: fetchAppStoreRequests },
+];
+
 export default function App() {
   const [view, setView] = useState<View>("overview");
   const [activeApp, setActiveApp] = useState<string | null>(null);
@@ -25,20 +30,25 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState<CategoryKey | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceKey | null>(null);
-  const [requests, setRequests] = useState<FeedbackRequest[]>(REQUESTS);
+  const [requests, setRequests] = useState<FeedbackRequest[]>([]);
+  const [loadingCount, setLoadingCount] = useState(INGESTION.length);
+  const [failedSources, setFailedSources] = useState<string[]>([]);
 
-  // Live ingestion for the in-app chat source: on success, support-desk
-  // reports replace the mock chat rows; on failure the mocks stay.
   useEffect(() => {
     let cancelled = false;
-    fetchSupportDeskRequests()
-      .then((live) => {
-        if (cancelled || live.length === 0) return;
-        setRequests((rs) => [...rs.filter((q) => q.source !== "chat"), ...live]);
-      })
-      .catch((err: unknown) => {
-        console.warn("support-desk ingestion failed; keeping mock chat data", err);
-      });
+    for (const { label, load } of INGESTION) {
+      load()
+        .then((live) => {
+          if (!cancelled) setRequests((rs) => [...rs, ...live]);
+        })
+        .catch((err: unknown) => {
+          console.warn(`${label} ingestion failed`, err);
+          if (!cancelled) setFailedSources((f) => [...f, label]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingCount((n) => n - 1);
+        });
+    }
     return () => {
       cancelled = true;
     };
@@ -113,14 +123,25 @@ export default function App() {
       />
 
       <main className="flex h-full flex-1 flex-col overflow-hidden">
+        {(loadingCount > 0 || failedSources.length > 0) && (
+          <div
+            className="border-b px-7 py-2 text-[12.5px]"
+            style={
+              failedSources.length > 0
+                ? { borderColor: "#F0D5D5", background: "#FDF3F3", color: "#B91C1C" }
+                : { borderColor: "#ECEAE7", background: "#F7F6F4", color: "#7A756E" }
+            }
+          >
+            {failedSources.length > 0 &&
+              `Couldn't load ${failedSources.join(" and ")} feedback — see the browser console. `}
+            {loadingCount > 0 && "Loading live feedback…"}
+          </div>
+        )}
+
         {view === "overview" && (
           <Overview
             stats={stats}
             requests={requests}
-            onOpenApp={(a) => {
-              setActiveApp(a);
-              setView("queue");
-            }}
             onGoQueue={() => {
               setActiveApp(null);
               setView("queue");
