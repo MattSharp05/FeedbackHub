@@ -85,7 +85,6 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
 export const APPS: string[] = [
   "Gmoji",
   "Emojify",
-  "Dynamic Lyrics",
   "Lyrix",
   "OJO",
   "Beam",

@@ -17,7 +17,9 @@ in-app chat — and is consolidated into one queue where each item is
 auto-categorized, given a drafted reply, and either auto-sent or sent after
 human approval. **Live data only — no mock data.** In-app chat is ingested from
 the support-desk API (`src/data/supportDesk/`), App Store reviews from Apple's
-public reviews feed (`src/data/appStore/`); Email is "coming soon" (`live:
+public reviews feed (`src/data/appStore/`, fetched server-side by
+`api/app-store-reviews.ts` — a Vercel function, mirrored in dev by a Vite
+middleware — because Apple 403s browsers that fan out; edge-cached 1h); Email is "coming soon" (`live:
 false` in `SOURCES`). No AI classification/drafting yet, and **nothing is
 really sent** — approve/send only changes local state.
 

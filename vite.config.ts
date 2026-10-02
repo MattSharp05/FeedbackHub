@@ -5,7 +5,26 @@ import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      // Dev stand-in for api/app-store-reviews.ts (Vercel function).
+      name: "app-store-reviews-api",
+      configureServer(server) {
+        server.middlewares.use("/api/app-store-reviews", async (_req, res) => {
+          try {
+            const mod = await server.ssrLoadModule("/src/data/appStore/index.ts");
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify(await mod.fetchAppStoreRequests()));
+          } catch (err) {
+            res.statusCode = 502;
+            res.end(JSON.stringify({ error: String(err) }));
+          }
+        });
+      },
+    },
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

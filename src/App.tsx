@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_AUTOMATION } from "@/data/constants";
 import { fetchSupportDeskRequests } from "@/data/supportDesk";
-import { fetchAppStoreRequests } from "@/data/appStore";
+import { loadAppStoreRequests } from "@/data/appStore";
 import type {
   AutomationConfig,
   CategoryKey,
@@ -16,9 +16,12 @@ import { Queue } from "@/components/Queue";
 import { Automation } from "@/components/Automation";
 import { Detail } from "@/components/Detail";
 
-const INGESTION: { label: string; load: () => Promise<FeedbackRequest[]> }[] = [
-  { label: "In-app chat", load: fetchSupportDeskRequests },
-  { label: "App Store", load: fetchAppStoreRequests },
+const INGESTION: {
+  label: string;
+  load: () => Promise<{ requests: FeedbackRequest[]; warning?: string }>;
+}[] = [
+  { label: "In-app chat", load: async () => ({ requests: await fetchSupportDeskRequests() }) },
+  { label: "App Store", load: loadAppStoreRequests },
 ];
 
 export default function App() {
@@ -33,13 +36,16 @@ export default function App() {
   const [requests, setRequests] = useState<FeedbackRequest[]>([]);
   const [loadingCount, setLoadingCount] = useState(INGESTION.length);
   const [failedSources, setFailedSources] = useState<string[]>([]);
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     for (const { label, load } of INGESTION) {
       load()
-        .then((live) => {
-          if (!cancelled) setRequests((rs) => [...rs, ...live]);
+        .then(({ requests: live, warning }) => {
+          if (cancelled) return;
+          setRequests((rs) => [...rs, ...live]);
+          if (warning) setWarnings((w) => [...w, warning]);
         })
         .catch((err: unknown) => {
           console.warn(`${label} ingestion failed`, err);
@@ -123,17 +129,20 @@ export default function App() {
       />
 
       <main className="flex h-full flex-1 flex-col overflow-hidden">
-        {(loadingCount > 0 || failedSources.length > 0) && (
+        {(loadingCount > 0 || failedSources.length > 0 || warnings.length > 0) && (
           <div
             className="border-b px-7 py-2 text-[12.5px]"
             style={
               failedSources.length > 0
                 ? { borderColor: "#F0D5D5", background: "#FDF3F3", color: "#B91C1C" }
-                : { borderColor: "#ECEAE7", background: "#F7F6F4", color: "#7A756E" }
+                : warnings.length > 0
+                  ? { borderColor: "#F4E4C4", background: "#FFF9EE", color: "#7A5B12" }
+                  : { borderColor: "#ECEAE7", background: "#F7F6F4", color: "#7A756E" }
             }
           >
             {failedSources.length > 0 &&
               `Couldn't load ${failedSources.join(" and ")} feedback — see the browser console. `}
+            {warnings.join(" ")}{" "}
             {loadingCount > 0 && "Loading live feedback…"}
           </div>
         )}
