@@ -14,9 +14,23 @@ function categoryHint(title: string | undefined): CategoryKey {
 
 const STATUS_MAP: Record<SupportDeskStatus, RequestStatus> = {
   pending: "new",
-  resolved: "sent",
-  rejected: "sent",
+  resolved: "resolved",
+  rejected: "rejected",
 };
+
+/** Our status → support-desk's coarser lifecycle (approval etc. stay pending). */
+export function toSupportDeskStatus(status: RequestStatus): SupportDeskStatus {
+  switch (status) {
+    case "resolved":
+    case "sent":
+    case "auto-handled":
+      return "resolved";
+    case "rejected":
+      return "rejected";
+    default:
+      return "pending";
+  }
+}
 
 export function mapReport(
   report: SupportDeskReport,

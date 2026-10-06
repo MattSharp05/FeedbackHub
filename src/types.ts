@@ -19,7 +19,10 @@ export type RequestStatus =
   | "drafted"
   | "approved"
   | "sent"
-  | "auto-handled";
+  | "auto-handled"
+  /** Closed without a reply being sent. */
+  | "resolved"
+  | "rejected";
 
 export type View = "overview" | "queue" | "automation";
 

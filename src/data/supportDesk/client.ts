@@ -86,6 +86,35 @@ export async function fetchAllReports(): Promise<SupportDeskReport[]> {
   return all;
 }
 
+/**
+ * Status-only update. Deliberately cannot set `adminMessage`, which may be
+ * delivered to the user in-app — reply sending is not enabled yet.
+ */
+export async function updateReportStatus(
+  id: string,
+  status: SupportDeskStatus,
+): Promise<SupportDeskReport> {
+  const path = `/api/reports/${encodeURIComponent(id)}`;
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    throw new Error(`support-desk PUT ${path}: HTTP ${res.status}`);
+  }
+  const body: unknown = await res.json();
+  if (
+    !isRecord(body) ||
+    body.success !== true ||
+    !isReport(body.report) ||
+    body.report.status !== status
+  ) {
+    throw new Error(`support-desk PUT ${path}: status was not updated`);
+  }
+  return body.report;
+}
+
 export async function fetchApps(): Promise<SupportDeskApp[]> {
   const body = await getJson("/api/apps");
   const apps = Array.isArray(body.apps) ? body.apps : [];

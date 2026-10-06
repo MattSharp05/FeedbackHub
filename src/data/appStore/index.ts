@@ -5,10 +5,8 @@ import type { FeedbackRequest } from "@/types";
 import { fetchRecentReviews } from "./client.js";
 import { mapReview, type Storefront } from "./mapReview.js";
 
-// App Store IDs for portfolio apps, matched via the developer accounts of apps
-// in the support-desk registry. Names must match `APPS` in constants.ts.
-// Not yet found on the App Store: Gmoji (delisted), Meal Planner, To Do App,
-// playground, talkz, Screen Recorder, Dog Translator, CalPal.
+// App Store IDs for every portfolio app, matched via the developer accounts of
+// apps in the support-desk registry. Names must match `APPS` in constants.ts.
 const APPS: { id: string; name: string }[] = [
   { id: "6651860228", name: "Lyrix" },
   { id: "6532628267", name: "Beam" },

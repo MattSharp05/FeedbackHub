@@ -68,6 +68,8 @@ export const STATUS_META: Record<RequestStatus, StatusMeta> = {
   approved: { label: "Approved", color: "#15803D", dot: "#22C55E" },
   sent: { label: "Sent", color: "#57534E", dot: "#A8A29E" },
   "auto-handled": { label: "Auto-handled", color: "#0F766E", dot: "#14B8A6" },
+  resolved: { label: "Resolved", color: "#4D7C0F", dot: "#84CC16" },
+  rejected: { label: "Rejected", color: "#B91C1C", dot: "#F87171" },
 };
 
 // Trust mode per category: draft | approve | auto
@@ -83,7 +85,6 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
 };
 
 export const APPS: string[] = [
-  "Gmoji",
   "Emojify",
   "Lyrix",
   "OJO",
@@ -93,10 +94,8 @@ export const APPS: string[] = [
   "Baby Tracker",
   "2nd Phone Number",
   "AR Drawing",
-  "Meal Planner",
   "Manifestation GPT",
   "Reverse Singing",
-  "To Do App",
   "Lightning Tracker",
   "Spice it",
   "Flash Cards",
@@ -104,14 +103,9 @@ export const APPS: string[] = [
   "Manga Infinity",
   "Manga Reader",
   "Hey Coach",
-  "playground",
-  "talkz",
   "VR 360",
   "Water Eject",
-  "Screen Recorder",
-  "Dog Translator",
   "Roomify",
-  "CalPal",
 ];
 
 // Deterministic color per app for the letter tile.

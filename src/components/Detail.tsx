@@ -7,10 +7,12 @@ import {
   Pencil,
   Send,
   Check,
+  CircleCheck,
+  RotateCcw,
   Languages,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { SOURCES, langName } from "@/data/constants";
+import { SOURCES, STATUS_META, langName } from "@/data/constants";
 import { ageLabel } from "@/lib/format";
 import type { AutomationConfig, FeedbackRequest, RequestStatus } from "@/types";
 import { CatTag, Confidence, SourceBadge } from "./primitives";
@@ -56,10 +58,26 @@ export function Detail({
   open: FeedbackRequest;
   automation: AutomationConfig;
   onClose: () => void;
-  onAct: (id: string, status: RequestStatus) => void;
+  onAct: (id: string, status: RequestStatus) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(open.draft);
   const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const closed = open.status === "resolved" || open.status === "rejected";
+
+  // On success the parent closes the drawer, so only the failure path
+  // touches local state.
+  async function run(status: RequestStatus) {
+    setBusy(true);
+    setError(null);
+    try {
+      await onAct(open.id, status);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setBusy(false);
+    }
+  }
   const src = SOURCES[open.source];
   const SrcIcon = src.icon;
   const mode = automation[open.category];
@@ -209,33 +227,71 @@ export function Detail({
         </div>
 
         {/* action bar */}
-        <div className="flex items-center gap-[9px] border-t border-[#ECEAE7] bg-[#FBFAF9] px-[22px] py-[14px]">
-          {open.status === "auto-handled" ? (
-            <div className="flex items-center gap-[7px] text-[13px] text-[#0F766E]">
-              <Check size={15} /> Auto-handled — reply already sent to user.
+        <div className="border-t border-[#ECEAE7] bg-[#FBFAF9] px-[22px] py-[14px]">
+          {error && (
+            <div className="mb-2.5 rounded-md bg-[#FDF3F3] px-2.5 py-1.5 text-[12px] text-[#B91C1C]">
+              Couldn't update: {error}
             </div>
-          ) : (
-            <>
-              <button
-                onClick={() => onAct(open.id, "sent")}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-none bg-[#2563EB] px-[15px] py-2 text-[13px] font-semibold text-white"
-              >
-                <Send size={14} /> {src.sendLabel}
-              </button>
-              <button
-                onClick={() => onAct(open.id, "approved")}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E3E0DC] bg-white px-[13px] py-2 text-[13px] font-medium text-[#42403B]"
-              >
-                <Check size={14} /> Approve only
-              </button>
-              <button
-                onClick={() => onAct(open.id, "sent")}
-                className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#F0D5D5] bg-white px-[13px] py-2 text-[13px] font-medium text-[#B91C1C]"
-              >
-                <X size={14} /> Reject
-              </button>
-            </>
           )}
+          <div className="flex items-center gap-[9px]">
+            {open.status === "auto-handled" ? (
+              <div className="flex items-center gap-[7px] text-[13px] text-[#0F766E]">
+                <Check size={15} /> Auto-handled — reply already sent to user.
+              </div>
+            ) : closed ? (
+              <>
+                <span className="text-[13px] text-[#7A756E]">
+                  Closed as{" "}
+                  <span className="font-medium" style={{ color: STATUS_META[open.status].color }}>
+                    {STATUS_META[open.status].label}
+                  </span>
+                </span>
+                <button
+                  onClick={() => run("new")}
+                  disabled={busy}
+                  className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E3E0DC] bg-white px-[13px] py-2 text-[13px] font-medium text-[#42403B] disabled:cursor-default disabled:opacity-50"
+                >
+                  <RotateCcw size={14} /> Reopen
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  disabled
+                  title="Reply sending isn't connected yet"
+                  className="inline-flex cursor-default items-center gap-1.5 rounded-lg border-none bg-[#2563EB] px-[15px] py-2 text-[13px] font-semibold text-white opacity-40"
+                >
+                  <Send size={14} /> {src.sendLabel}
+                </button>
+                <button
+                  onClick={() => run("approved")}
+                  disabled={busy}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E3E0DC] bg-white px-[13px] py-2 text-[13px] font-medium text-[#42403B] disabled:cursor-default disabled:opacity-50"
+                >
+                  <Check size={14} /> Approve only
+                </button>
+                <button
+                  onClick={() => run("resolved")}
+                  disabled={busy}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E3E0DC] bg-white px-[13px] py-2 text-[13px] font-medium text-[#42403B] disabled:cursor-default disabled:opacity-50"
+                >
+                  <CircleCheck size={14} /> Mark resolved
+                </button>
+                <button
+                  onClick={() => run("rejected")}
+                  disabled={busy}
+                  className="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#F0D5D5] bg-white px-[13px] py-2 text-[13px] font-medium text-[#B91C1C] disabled:cursor-default disabled:opacity-50"
+                >
+                  <X size={14} /> Reject
+                </button>
+              </>
+            )}
+          </div>
+          <div className="mt-2 text-[11.5px] text-[#A8A29A]">
+            Reply sending isn't connected yet — nothing is sent to the user.
+            {open.source === "chat" &&
+              " Resolve, reject and reopen sync to support-desk."}
+          </div>
         </div>
       </aside>
     </>

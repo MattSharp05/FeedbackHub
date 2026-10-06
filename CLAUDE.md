@@ -61,7 +61,8 @@ draft, action, confidence, status, ageMin`.
 
 - `source`: `"appstore" | "email" | "chat"`
 - `category`: `cancel | refund | unsubscribe | billing | bug | feature | praise | other`
-- `status`: `new | drafted | approved | sent | auto-handled`
+- `status`: `new | drafted | approved | sent | auto-handled | resolved | rejected`
+  (`resolved`/`rejected` = closed without a reply)
 - Trust mode per category: `draft | approve | auto`
 
 Source metadata (`src/data/constants.ts` → `SOURCES`) carries the delivery
@@ -80,8 +81,11 @@ callbacks. When adding features, follow this: lift state to `App`, derive with
   appends its normalized rows on load, failures surface in a banner), plus `view`,
   `activeApp`, `openId`, `automation`, and the filter state (`query`,
   `catFilter`, `sourceFilter`).
-- **The only mutation** is `act(id, status)` — it maps over `requests` to change
-  one item's `status` and closes the drawer. All approve/reject/send actions in
+- **The only mutation** is `act(id, status)` — for in-app chat it first writes the
+  status back to support-desk (`syncSupportDeskStatus`, status only — it cannot
+  set `adminMessage`, so nothing reaches users), then maps over `requests` to
+  change one item's `status` and closes the drawer. A failed write-back throws
+  and the drawer shows the error. Reply sending is disabled in the UI. All approve/reject/send actions in
   the Detail drawer funnel through this. There is no other way requests change.
 - **Derived, not stored:** `filtered` (app + category + source + search, sorted
   by `ageMin`), `stats` (totals/needs/auto + per-category counts), and

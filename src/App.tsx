@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_AUTOMATION } from "@/data/constants";
-import { fetchSupportDeskRequests } from "@/data/supportDesk";
+import { fetchSupportDeskRequests, syncSupportDeskStatus } from "@/data/supportDesk";
 import { loadAppStoreRequests } from "@/data/appStore";
 import type {
   AutomationConfig,
@@ -101,7 +101,13 @@ export default function App() {
     return { total, auto, needs, byCat };
   }, [requests]);
 
-  function act(id: string, status: RequestStatus) {
+  // Throws if a source write-back fails; the local status only changes after
+  // the source accepted it.
+  async function act(id: string, status: RequestStatus) {
+    const target = requests.find((q) => q.id === id);
+    if (target?.source === "chat") {
+      await syncSupportDeskStatus(target.id, target.status, status);
+    }
     setRequests((rs) => rs.map((q) => (q.id === id ? { ...q, status } : q)));
     setOpenId(null);
   }
