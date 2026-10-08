@@ -1,5 +1,5 @@
-import type { FeedbackRequest } from "@/types";
-import type { AppStoreReview } from "./client";
+import type { FeedbackRequest } from "../../types.js";
+import type { AppStoreReview } from "./client.js";
 
 export interface Storefront {
   code: string;

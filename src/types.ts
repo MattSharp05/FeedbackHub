@@ -77,4 +77,10 @@ export interface FeedbackRequest {
   replyEmail?: string | null;
 }
 
+/** AI classification and drafted reply for one request. */
+export type Enrichment = Pick<
+  FeedbackRequest,
+  "category" | "confidence" | "lang" | "translation" | "action" | "draft" | "draftTranslation"
+>;
+
 export type AutomationConfig = Record<CategoryKey, TrustMode>;

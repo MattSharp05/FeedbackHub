@@ -20,8 +20,8 @@ the support-desk API (`src/data/supportDesk/`), App Store reviews from Apple's
 public reviews feed (`src/data/appStore/`, fetched server-side by
 `api/app-store-reviews.ts` — a Vercel function, mirrored in dev by a Vite
 middleware — because Apple 403s browsers that fan out; edge-cached 1h); Email is "coming soon" (`live:
-false` in `SOURCES`). No AI classification/drafting yet, and **nothing is
-really sent** — approve/send only changes local state.
+false` in `SOURCES`). AI classification/drafting runs when configured (see below), and **nothing is
+really sent** — reply sending is disabled.
 
 ## Non-negotiable architecture principle
 
@@ -153,16 +153,30 @@ tiny formatters like `ageLabel`.
 - Don't introduce browser storage; state is in-memory React state by design for
   this prototype.
 
+## AI classification and persistence
+
+- `api/classify.ts` (POST, ≤5 items) classifies open items and drafts replies with
+  Claude Haiku 4.5 (`server/classify.ts`, structured outputs); results go to
+  Postgres (`server/db.ts`, table `enrichment`) so each item is classified once.
+  The browser (`src/data/enrichment.ts`, driven from `App.tsx`) sends unclassified
+  items newest-first, one batch at a time.
+- `api/enrichment.ts` (GET) returns stored results and saved statuses;
+  `api/status.ts` (PUT) saves a dashboard status (table `request_status`).
+  `applyAi` overlays both onto the source rows; for in-app chat, support-desk stays
+  the source of truth for closed states.
+- Needs `ANTHROPIC_API_KEY` and `DATABASE_URL` (Vercel env vars; locally
+  `.env.local` via `vercel env pull`). Without them the endpoints return 503 and
+  the banner says what's missing.
+- Server code (`api/`, `server/`) is type-checked by `tsconfig.server.json` in
+  Node ESM mode: relative imports need `.js` extensions (Vercel's runtime
+  requires them). In dev, `vercelApiDev` in `vite.config.ts` serves `api/*.ts`.
+
 ## Likely next tasks (in priority order)
 
-1. Extract the phased-rollout / trust model into shared logic so the Detail
-   drawer's send behavior is derived from the Automation config per (category ×
-   source) rather than category alone. Real-world: an email refund may auto-send
-   but an App Store refund reply stays human-approved because it's public.
-2. Add a thin data layer boundary (e.g. a `src/data/api.ts` with async functions
-   returning the mock data) so swapping in a real backend later is a one-file
-   change.
-3. Ingestion adapters per source and a normalized DB schema (design the schema to
-   match `FeedbackRequest`).
-4. Reporting: turn the hard-coded `INSIGHTS` into something computed from the
-   request set (cluster the "other" bucket, flag version-correlated bug spikes).
+1. Email ingestion (Google Workspace / Gmail API) once mailbox access is granted.
+2. Reply sending per source — deliberately not built; support-desk's
+   `adminMessage` may reach users, so it needs an explicit go-ahead.
+3. Extract the trust model so send behavior keys off (category × source) rather
+   than category alone (an App Store reply is public; an email reply isn't).
+4. Reporting: compute the Overview's "Needs attention" insights from the
+   AI-classified request set (emerging issues, version-correlated bug spikes).

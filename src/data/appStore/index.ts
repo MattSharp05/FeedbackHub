@@ -1,7 +1,7 @@
 // Runs server-side (api/app-store-reviews.ts, and the Vite dev middleware):
 // Apple 403s browser User-Agents after a burst, so browsers must not fan out
 // to the feed themselves. Relative imports carry `.js` for Node ESM on Vercel.
-import type { FeedbackRequest } from "@/types";
+import type { FeedbackRequest } from "../../types.js";
 import { fetchRecentReviews } from "./client.js";
 import { mapReview, type Storefront } from "./mapReview.js";
 
@@ -146,7 +146,7 @@ export async function loadAppStoreRequests(): Promise<{
 }> {
   const res = await fetch("/api/app-store-reviews");
   if (!res.ok) throw new Error(`/api/app-store-reviews: HTTP ${res.status}`);
-  const { requests, failedFeeds, totalFeeds }: AppStoreResult = await res.json();
+  const { requests, failedFeeds, totalFeeds } = (await res.json()) as AppStoreResult;
   return {
     requests,
     warning:

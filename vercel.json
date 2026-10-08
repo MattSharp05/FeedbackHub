@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "functions": {
-    "api/app-store-reviews.ts": { "maxDuration": 60 }
+    "api/app-store-reviews.ts": { "maxDuration": 60 },
+    "api/classify.ts": { "maxDuration": 60 }
   },
   "rewrites": [
     {
