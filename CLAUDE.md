@@ -157,16 +157,17 @@ tiny formatters like `ageLabel`.
 
 - `api/classify.ts` (POST, ≤5 items) classifies open items and drafts replies with
   Claude Haiku 4.5 (`server/classify.ts`, structured outputs); results go to
-  Postgres (`server/db.ts`, table `enrichment`) so each item is classified once.
+  Supabase (`server/db.ts`, table `enrichment`) so each item is classified once.
   The browser (`src/data/enrichment.ts`, driven from `App.tsx`) sends unclassified
   items newest-first, one batch at a time.
 - `api/enrichment.ts` (GET) returns stored results and saved statuses;
   `api/status.ts` (PUT) saves a dashboard status (table `request_status`).
   `applyAi` overlays both onto the source rows; for in-app chat, support-desk stays
   the source of truth for closed states.
-- Needs `ANTHROPIC_API_KEY` and `DATABASE_URL` (Vercel env vars; locally
-  `.env.local` via `vercel env pull`). Without them the endpoints return 503 and
-  the banner says what's missing.
+- Needs `ANTHROPIC_API_KEY`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+  (Vercel env vars; locally `.env.local` via `vercel env pull`), plus
+  `server/schema.sql` run once in Supabase's SQL editor. Without them the
+  endpoints return 503 and the banner says what's missing.
 - Server code (`api/`, `server/`) is type-checked by `tsconfig.server.json` in
   Node ESM mode: relative imports need `.js` extensions (Vercel's runtime
   requires them). In dev, `vercelApiDev` in `vite.config.ts` serves `api/*.ts`.

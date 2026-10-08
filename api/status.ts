@@ -1,4 +1,4 @@
-import { ensureSchema, saveStatus, sql } from "../server/db.js";
+import { db, saveStatus } from "../server/db.js";
 import type { RequestStatus } from "../src/types.js";
 
 const STATUSES: readonly RequestStatus[] = [
@@ -13,7 +13,7 @@ const STATUSES: readonly RequestStatus[] = [
 
 /** Persist a dashboard status change. */
 export async function PUT(request: Request): Promise<Response> {
-  if (!sql) return Response.json({ error: "DATABASE_URL is not set" }, { status: 503 });
+  if (!db) return Response.json({ error: "Supabase is not configured" }, { status: 503 });
   const body: unknown = await request.json().catch(() => null);
   const { id, status } = (body ?? {}) as { id?: unknown; status?: unknown };
   if (
@@ -25,8 +25,7 @@ export async function PUT(request: Request): Promise<Response> {
     return Response.json({ error: "invalid request" }, { status: 400 });
   }
   try {
-    await ensureSchema(sql);
-    await saveStatus(sql, id, status as RequestStatus);
+    await saveStatus(db, id, status as RequestStatus);
     return Response.json({ ok: true });
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 502 });

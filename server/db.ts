@@ -1,62 +1,112 @@
-import { neon } from "@neondatabase/serverless";
+import { createClient } from "@supabase/supabase-js";
 import type { Enrichment, RequestStatus } from "../src/types.js";
 
-// Vercel's Neon integration sets DATABASE_URL (POSTGRES_URL on older setups).
-const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+// Set by Vercel's Supabase integration (or copied from Supabase → Project
+// Settings → API). The service-role key is server-only.
+export const DB_ENV = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
 
-export const sql = url ? neon(url) : null;
-export type Sql = NonNullable<typeof sql>;
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-let schemaReady: Promise<unknown> | null = null;
+export const db = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+export type Db = NonNullable<typeof db>;
 
-/** Creates the tables on first use; idempotent. */
-export function ensureSchema(db: Sql): Promise<unknown> {
-  schemaReady ??= Promise.all([
-    db`CREATE TABLE IF NOT EXISTS enrichment (
-      request_id text PRIMARY KEY,
-      category text NOT NULL,
-      confidence real NOT NULL,
-      lang text NOT NULL,
-      translation text,
-      action text NOT NULL,
-      draft text NOT NULL,
-      draft_translation text,
-      model text NOT NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    )`,
-    db`CREATE TABLE IF NOT EXISTS request_status (
-      request_id text PRIMARY KEY,
-      status text NOT NULL,
-      updated_at timestamptz NOT NULL DEFAULT now()
-    )`,
-  ]).catch((err: unknown) => {
-    schemaReady = null;
-    throw err;
-  });
-  return schemaReady;
+// Supabase's API returns at most 1000 rows per request by default.
+const PAGE = 1000;
+
+interface EnrichmentRow {
+  request_id: string;
+  category: Enrichment["category"];
+  confidence: number;
+  lang: string;
+  translation: string | null;
+  action: string;
+  draft: string;
+  draft_translation: string | null;
 }
 
-export function rowToEnrichment(row: Record<string, unknown>): Enrichment {
+function check(error: { message: string; code?: string } | null, table: string) {
+  if (!error) return;
+  if (error.code === "PGRST205" || error.code === "42P01") {
+    throw new Error(`table "${table}" is missing — run server/schema.sql in Supabase's SQL editor`);
+  }
+  throw new Error(`${table}: ${error.message}`);
+}
+
+function rowToEnrichment(row: EnrichmentRow): Enrichment {
   return {
-    category: row.category as Enrichment["category"],
+    category: row.category,
     confidence: Number(row.confidence),
-    lang: String(row.lang),
-    translation: (row.translation as string | null) ?? null,
-    action: String(row.action),
-    draft: String(row.draft),
-    draftTranslation: (row.draft_translation as string | null) ?? null,
+    lang: row.lang,
+    translation: row.translation,
+    action: row.action,
+    draft: row.draft,
+    draftTranslation: row.draft_translation,
   };
 }
 
-export async function saveEnrichment(db: Sql, id: string, e: Enrichment, model: string) {
-  await db`INSERT INTO enrichment
-      (request_id, category, confidence, lang, translation, action, draft, draft_translation, model)
-    VALUES
-      (${id}, ${e.category}, ${e.confidence}, ${e.lang}, ${e.translation}, ${e.action}, ${e.draft}, ${e.draftTranslation}, ${model})
-    ON CONFLICT (request_id) DO NOTHING`;
+export async function loadAllEnrichment(db: Db): Promise<Record<string, Enrichment>> {
+  const out: Record<string, Enrichment> = {};
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("enrichment")
+      .select("*")
+      .order("request_id")
+      .range(from, from + PAGE - 1);
+    check(error, "enrichment");
+    const rows = (data ?? []) as EnrichmentRow[];
+    for (const row of rows) out[row.request_id] = rowToEnrichment(row);
+    if (rows.length < PAGE) return out;
+  }
 }
 
-export async function saveStatus(db: Sql, id: string, status: RequestStatus) {
-  await db`INSERT INTO request_status (request_id, status) VALUES (${id}, ${status})
-    ON CONFLICT (request_id) DO UPDATE SET status = EXCLUDED.status, updated_at = now()`;
+export async function loadEnrichment(db: Db, ids: string[]): Promise<Record<string, Enrichment>> {
+  const { data, error } = await db.from("enrichment").select("*").in("request_id", ids);
+  check(error, "enrichment");
+  const out: Record<string, Enrichment> = {};
+  for (const row of (data ?? []) as EnrichmentRow[]) out[row.request_id] = rowToEnrichment(row);
+  return out;
+}
+
+export async function loadAllStatuses(db: Db): Promise<Record<string, RequestStatus>> {
+  const out: Record<string, RequestStatus> = {};
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("request_status")
+      .select("request_id, status")
+      .order("request_id")
+      .range(from, from + PAGE - 1);
+    check(error, "request_status");
+    const rows = (data ?? []) as { request_id: string; status: RequestStatus }[];
+    for (const row of rows) out[row.request_id] = row.status;
+    if (rows.length < PAGE) return out;
+  }
+}
+
+export async function saveEnrichment(db: Db, id: string, e: Enrichment, model: string) {
+  const { error } = await db.from("enrichment").upsert(
+    {
+      request_id: id,
+      category: e.category,
+      confidence: e.confidence,
+      lang: e.lang,
+      translation: e.translation,
+      action: e.action,
+      draft: e.draft,
+      draft_translation: e.draftTranslation,
+      model,
+    },
+    { onConflict: "request_id", ignoreDuplicates: true },
+  );
+  check(error, "enrichment");
+}
+
+export async function saveStatus(db: Db, id: string, status: RequestStatus) {
+  const { error } = await db
+    .from("request_status")
+    .upsert(
+      { request_id: id, status, updated_at: new Date().toISOString() },
+      { onConflict: "request_id" },
+    );
+  check(error, "request_status");
 }

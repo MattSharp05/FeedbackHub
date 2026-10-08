@@ -170,7 +170,7 @@ export default function App() {
     })),
     ...warnings.map((text) => ({ tone: "warn" as const, text })),
     ...(ai && !ai.aiConfigured
-      ? [{ tone: "warn" as const, text: `AI classification isn't set up yet — add ${ai.missing.join(" and ")} in Vercel.` }]
+      ? [{ tone: "warn" as const, text: `AI classification isn't set up yet — add ${ai.missing.join(", ").replace(/, ([^,]*)$/, " and $1")} in Vercel.` }]
       : []),
     ...(aiError ? [{ tone: "warn" as const, text: aiError }] : []),
     ...(loadingCount > 0 ? [{ tone: "info" as const, text: "Loading live feedback…" }] : []),

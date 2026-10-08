@@ -1,4 +1,4 @@
-import { ensureSchema, rowToEnrichment, saveEnrichment, sql } from "../server/db.js";
+import { db as database, loadEnrichment, saveEnrichment } from "../server/db.js";
 import {
   aiConfigured,
   CATEGORY_KEYS,
@@ -6,7 +6,7 @@ import {
   MODEL,
   type ClassifyItem,
 } from "../server/classify.js";
-import type { CategoryKey, Enrichment, SourceKey } from "../src/types.js";
+import type { CategoryKey, SourceKey } from "../src/types.js";
 
 // Small batches keep each call well inside the function time limit and a new
 // Anthropic account's rate limits; the browser sends batches one at a time.
@@ -43,7 +43,7 @@ function parseItems(body: unknown): ClassifyItem[] | null {
 
 /** Classify and draft replies for items not yet in the database. */
 export async function POST(request: Request): Promise<Response> {
-  const db = sql;
+  const db = database;
   if (!db || !aiConfigured) {
     return Response.json({ error: "AI classification is not configured" }, { status: 503 });
   }
@@ -51,12 +51,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!items) return Response.json({ error: "invalid request" }, { status: 400 });
 
   try {
-    await ensureSchema(db);
-    const ids = items.map((i) => i.id);
-    const enrichment: Record<string, Enrichment> = {};
-    for (const row of await db`SELECT * FROM enrichment WHERE request_id = ANY(${ids})`) {
-      enrichment[row.request_id] = rowToEnrichment(row);
-    }
+    const enrichment = await loadEnrichment(
+      db,
+      items.map((i) => i.id),
+    );
     const todo = items.filter((i) => !enrichment[i.id]);
     const failed: string[] = [];
     for (let i = 0; i < todo.length; i += IN_FLIGHT) {
