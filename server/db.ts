@@ -6,7 +6,8 @@ import type { Enrichment, RequestStatus } from "../src/types.js";
 export const DB_ENV = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
 
 const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Newer Supabase projects issue a "secret key" in place of the service-role key.
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
 
 export const db = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
 export type Db = NonNullable<typeof db>;
