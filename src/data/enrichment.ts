@@ -5,6 +5,8 @@ export interface AiState {
   aiConfigured: boolean;
   /** Environment variables the server still needs. */
   missing: string[];
+  /** A setting that exists but is unusable, explained. */
+  problem?: string | null;
   enrichment: Record<string, Enrichment>;
   statuses: Record<string, RequestStatus>;
 }
@@ -12,8 +14,8 @@ export interface AiState {
 export async function loadAiState(): Promise<AiState> {
   const res = await fetch("/api/enrichment");
   if (res.status === 503) {
-    const { missing } = (await res.json()) as { missing: string[] };
-    return { dbConfigured: false, aiConfigured: false, missing, enrichment: {}, statuses: {} };
+    const { missing, problem } = (await res.json()) as { missing: string[]; problem?: string | null };
+    return { dbConfigured: false, aiConfigured: false, missing, problem, enrichment: {}, statuses: {} };
   }
   if (!res.ok) throw new Error(`/api/enrichment: HTTP ${res.status}`);
   return res.json();

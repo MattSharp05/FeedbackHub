@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Enrichment, RequestStatus } from "../src/types.js";
 
 // Set by Vercel's Supabase integration (or copied from Supabase → Project
@@ -9,7 +9,19 @@ const url = process.env.SUPABASE_URL;
 // Newer Supabase projects issue a "secret key" in place of the service-role key.
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
 
-export const db = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+let client: SupabaseClient | null = null;
+/** Set when the settings exist but are unusable, so the banner can say why. */
+export let dbProblem: string | null = null;
+if (url && key) {
+  try {
+    client = createClient(url, key, { auth: { persistSession: false } });
+  } catch {
+    dbProblem =
+      "SUPABASE_URL in Vercel isn't a valid URL — it should be the Supabase project URL, like https://abcd1234.supabase.co.";
+  }
+}
+
+export const db = client;
 export type Db = NonNullable<typeof db>;
 
 // Supabase's API returns at most 1000 rows per request by default.

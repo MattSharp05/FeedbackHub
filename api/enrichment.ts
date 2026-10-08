@@ -1,11 +1,17 @@
-import { db, DB_ENV, loadAllEnrichment, loadAllStatuses } from "../server/db.js";
+import { db, DB_ENV, dbProblem, loadAllEnrichment, loadAllStatuses } from "../server/db.js";
 import { aiConfigured } from "../server/classify.js";
 
 /** Stored AI results and dashboard statuses, plus which settings are missing. */
 export async function GET(): Promise<Response> {
-  const missing = [...(db ? [] : DB_ENV), ...(aiConfigured ? [] : ["ANTHROPIC_API_KEY"])];
+  const missing = [
+    ...(db || dbProblem ? [] : DB_ENV),
+    ...(aiConfigured ? [] : ["ANTHROPIC_API_KEY"]),
+  ];
   if (!db) {
-    return Response.json({ dbConfigured: false, aiConfigured, missing }, { status: 503 });
+    return Response.json(
+      { dbConfigured: false, aiConfigured, missing, problem: dbProblem },
+      { status: 503 },
+    );
   }
   try {
     const [enrichment, statuses] = await Promise.all([loadAllEnrichment(db), loadAllStatuses(db)]);

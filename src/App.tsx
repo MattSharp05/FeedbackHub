@@ -169,7 +169,8 @@ export default function App() {
       text: `Couldn't load ${s} feedback — see the browser console.`,
     })),
     ...warnings.map((text) => ({ tone: "warn" as const, text })),
-    ...(ai && !ai.aiConfigured
+    ...(ai?.problem ? [{ tone: "warn" as const, text: ai.problem }] : []),
+    ...(ai && ai.missing.length > 0
       ? [{ tone: "warn" as const, text: `AI classification isn't set up yet — add ${ai.missing.join(", ").replace(/, ([^,]*)$/, " and $1")} in Vercel.` }]
       : []),
     ...(aiError ? [{ tone: "warn" as const, text: aiError }] : []),
