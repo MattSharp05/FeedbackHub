@@ -12,7 +12,10 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET
 let client: SupabaseClient | null = null;
 /** Set when the settings exist but are unusable, so the banner can say why. */
 export let dbProblem: string | null = null;
-if (url && key) {
+const dashboardRef = url?.match(/supabase\.com\/dashboard\/project\/([a-z0-9]+)/i)?.[1];
+if (url && key && dashboardRef) {
+  dbProblem = `SUPABASE_URL in Vercel is the Supabase dashboard link — change it to https://${dashboardRef}.supabase.co and redeploy.`;
+} else if (url && key) {
   try {
     client = createClient(url, key, { auth: { persistSession: false } });
   } catch {
@@ -43,7 +46,8 @@ function check(error: { message: string; code?: string } | null, table: string) 
   if (error.code === "PGRST205" || error.code === "42P01") {
     throw new Error(`table "${table}" is missing — run server/schema.sql in Supabase's SQL editor`);
   }
-  throw new Error(`${table}: ${error.message}`);
+  // A wrong URL returns an HTML page as the "message"; keep errors readable.
+  throw new Error(`${table}: ${error.message.slice(0, 200)}`);
 }
 
 function rowToEnrichment(row: EnrichmentRow): Enrichment {
