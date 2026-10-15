@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
 import type { CategoryKey, Enrichment, SourceKey } from "../src/types.js";
+import { AUTO_CLOSED_NOTE } from "../src/data/autoClose.js";
 
 export const MODEL = "claude-haiku-4-5";
 
@@ -132,7 +133,7 @@ export async function classifyItem(
       translation: orNull(out.english_translation),
       action: out.is_customer_feedback
         ? out.action_item
-        : `Not customer feedback — closed automatically. ${out.action_item}`,
+        : `${AUTO_CLOSED_NOTE} ${out.action_item}`,
       draft: out.reply,
       draftTranslation: orNull(out.reply_english_translation),
     },

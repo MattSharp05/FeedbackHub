@@ -4,6 +4,7 @@ import { fetchSupportDeskRequests, syncSupportDeskStatus } from "@/data/supportD
 import { loadAppStoreRequests } from "@/data/appStore";
 import { loadEmailRequests, sendEmailReply } from "@/data/email";
 import { applyAi, classifyRequests, loadAiState, saveStatus, type AiState } from "@/data/enrichment";
+import { isAutoClosed } from "@/data/autoClose";
 import type {
   AutomationConfig,
   CategoryKey,
@@ -13,7 +14,6 @@ import type {
   View,
 } from "@/types";
 import { Sidebar } from "@/components/Sidebar";
-import { Overview } from "@/components/Overview";
 import { Queue } from "@/components/Queue";
 import { Automation } from "@/components/Automation";
 import { Detail } from "@/components/Detail";
@@ -31,7 +31,7 @@ const INGESTION: {
 const CLASSIFY_BATCH = 5;
 
 export default function App() {
-  const [view, setView] = useState<View>("overview");
+  const [view, setView] = useState<View>("queue");
   const [activeApp, setActiveApp] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [automation, setAutomation] =
@@ -80,7 +80,9 @@ export default function App() {
 
   const requests = useMemo(
     () =>
-      sourceRequests.map((q) => applyAi(q, ai?.enrichment[q.id], ai?.statuses[q.id])),
+      sourceRequests
+        .map((q) => applyAi(q, ai?.enrichment[q.id], ai?.statuses[q.id]))
+        .filter((q) => !isAutoClosed(q)),
     [sourceRequests, ai],
   );
 
@@ -214,10 +216,6 @@ export default function App() {
         activeApp={activeApp}
         needs={stats.needs}
         pendingByApp={pendingByApp}
-        onOverview={() => {
-          setView("overview");
-          setActiveApp(null);
-        }}
         onQueueAll={() => {
           setView("queue");
           setActiveApp(null);
@@ -234,17 +232,6 @@ export default function App() {
           <div className="border-b px-7 py-2 text-[12.5px]" style={bannerTone}>
             {banner.map((b) => b.text).join(" ")}
           </div>
-        )}
-
-        {view === "overview" && (
-          <Overview
-            stats={stats}
-            requests={requests}
-            onGoQueue={() => {
-              setActiveApp(null);
-              setView("queue");
-            }}
-          />
         )}
 
         {view === "queue" && (

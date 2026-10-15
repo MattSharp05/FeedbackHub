@@ -1,4 +1,4 @@
-import { LayoutGrid, Inbox, Zap } from "lucide-react";
+import { Inbox, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { APPS } from "@/data/constants";
 import type { View } from "@/types";
@@ -49,7 +49,6 @@ export function Sidebar({
   activeApp,
   needs,
   pendingByApp,
-  onOverview,
   onQueueAll,
   onAutomation,
   onSelectApp,
@@ -58,7 +57,6 @@ export function Sidebar({
   activeApp: string | null;
   needs: number;
   pendingByApp: Record<string, number>;
-  onOverview: () => void;
   onQueueAll: () => void;
   onAutomation: () => void;
   onSelectApp: (app: string) => void;
@@ -75,12 +73,6 @@ export function Sidebar({
       </div>
 
       <nav className="px-2 pb-2 pt-1">
-        <RailItem
-          icon={LayoutGrid}
-          label="Overview"
-          active={view === "overview"}
-          onClick={onOverview}
-        />
         <RailItem
           icon={Inbox}
           label="Queue"

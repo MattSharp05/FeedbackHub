@@ -24,7 +24,7 @@ export type RequestStatus =
   | "resolved"
   | "rejected";
 
-export type View = "overview" | "queue" | "automation";
+export type View = "queue" | "automation";
 
 export interface SourceMeta {
   label: string;

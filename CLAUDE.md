@@ -119,24 +119,24 @@ tiny formatters like `ageLabel`.
 
 ## Screens (already implemented)
 
-1. **Overview** (`components/Overview.tsx`) — landing view. Three stat cards
-   (incoming / needs attention / auto-handled %), a "Needs attention" panel
-   built from `INSIGHTS` that surfaces cross-app emerging issues, and a
-   volume-by-category bar list. Clicking an insight opens that app's queue.
+The app opens on the Queue. (An Overview screen existed but was removed while
+it had no real insights; it's in git history.) Items the AI auto-closed as not
+customer feedback (`isAutoClosed`, `src/data/autoClose.ts`) are hidden
+everywhere.
 
-2. **Queue** (`components/Queue.tsx`) — app-first list. Selecting an app in the
+1. **Queue** (`components/Queue.tsx`) — app-first list. Selecting an app in the
    sidebar filters to it. A source-filter row (All sources / App Store / Email /
    In-app chat), a category-filter row, and search. Each row shows category,
    source badge, language/country, message snippet, status, confidence, age.
 
-3. **Detail drawer** (`components/Detail.tsx`) — opens on row click. Original
+2. **Detail drawer** (`components/Detail.tsx`) — opens on row click. Original
    message + metadata, AI classification + confidence, a per-request action
    item, an editable drafted reply with its trust-mode badge, a "Delivered via
    ___" line (source-aware, with the App Store public/one-shot note), and a
    source-aware primary send button (e.g. "Approve & send email" vs "Approve &
    post response"). Approve / approve-only / reject mutate the item's status.
 
-4. **Automations** (`components/Automation.tsx`) — per-category trust toggle:
+3. **Automations** (`components/Automation.tsx`) — per-category trust toggle:
    Draft only → Human approval → Auto-send. This is the phased trust model.
    Defaults: unsubscribe + praise on auto; refund + billing on approve; bug,
    feature, cancel, other on draft. (See `DEFAULT_AUTOMATION`.)
@@ -189,5 +189,5 @@ tiny formatters like `ageLabel`.
    production support-desk items.
 3. Extract the trust model so send behavior keys off (category × source) rather
    than category alone (an App Store reply is public; an email reply isn't).
-4. Reporting: compute the Overview's "Needs attention" insights from the
+4. Reporting: bring back an Overview with insights computed from the
    AI-classified request set (emerging issues, version-correlated bug spikes).
