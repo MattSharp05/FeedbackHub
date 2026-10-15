@@ -24,8 +24,8 @@ export function parseAccounts(value: string | undefined): MailAccount[] {
 
 export const accounts = parseAccounts(process.env.EMAIL_ACCOUNTS);
 
-const MAX_AGE_DAYS = 90;
-const MAX_PER_MAILBOX = 100;
+const MAX_AGE_DAYS = 30;
+const MAX_PER_MAILBOX = 50;
 const MAX_BODY_BYTES = 20_000;
 
 function findPart(node: MessageStructureObject, type: string): string | undefined {

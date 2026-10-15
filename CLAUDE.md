@@ -20,7 +20,7 @@ the support-desk API (`src/data/supportDesk/`), App Store reviews from Apple's
 public reviews feed (`src/data/appStore/`, fetched server-side by
 `api/app-store-reviews.ts` — a Vercel function, mirrored in dev by a Vite
 middleware — because Apple 403s browsers that fan out; edge-cached 1h); Email is read from the Google Workspace support mailboxes over IMAP
-(`server/email.ts`, read-only, last 90 days; app passwords in `EMAIL_ACCOUNTS`),
+(`server/email.ts`, read-only, newest 50 per mailbox from the last 30 days; app passwords in `EMAIL_ACCOUNTS`),
 mapped by `src/data/email/mapEmail.ts`: automated `📱 App - Category - email`
 notifications become in-app (`chat`) items, other customer emails become
 `email` items attributed to an app by mailbox + app names in the text. AI classification/drafting runs when configured (see below), and **nothing is

@@ -13,7 +13,7 @@ console.log(`Done in ${((Date.now() - started) / 1000).toFixed(1)}s.`);
 if (failedMailboxes.length) console.log(`Couldn't read: ${failedMailboxes.join(", ")}`);
 
 const count = (pred: (q: (typeof requests)[number]) => boolean) => requests.filter(pred).length;
-console.log(`\n${requests.length} feedback items from the last 90 days:`);
+console.log(`\n${requests.length} feedback items (newest 50 per mailbox, last 30 days):`);
 console.log(`  in-app reports (📱 notifications): ${count((q) => q.source === "chat")}`);
 console.log(`  direct customer emails:           ${count((q) => q.source === "email")}`);
 console.log(`  not matched to an app:            ${count((q) => q.app === "Unknown app")}`);
