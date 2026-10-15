@@ -1,0 +1,25 @@
+// The portfolio apps — the dashboard's top-level axis. Source adapters map
+// their app names onto these.
+export const APPS: string[] = [
+  "Emojify",
+  "Lyrix",
+  "OJO",
+  "Beam",
+  "radcam",
+  "Contraction Timer",
+  "Baby Tracker",
+  "2nd Phone Number",
+  "AR Drawing",
+  "Manifestation GPT",
+  "Reverse Singing",
+  "Lightning Tracker",
+  "Spice it",
+  "Flash Cards",
+  "Invoice Maker",
+  "Manga Infinity",
+  "Manga Reader",
+  "Hey Coach",
+  "VR 360",
+  "Water Eject",
+  "Roomify",
+];

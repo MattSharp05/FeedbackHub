@@ -38,7 +38,7 @@ export const SOURCES: Record<SourceKey, SourceMeta> = {
     sendLabel: "Approve & send email",
     deliverVia: "Email reply to the user",
     note: null,
-    live: false,
+    live: true,
   },
   chat: {
     label: "In-app chat",
@@ -84,29 +84,7 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
   other: "draft",
 };
 
-export const APPS: string[] = [
-  "Emojify",
-  "Lyrix",
-  "OJO",
-  "Beam",
-  "radcam",
-  "Contraction Timer",
-  "Baby Tracker",
-  "2nd Phone Number",
-  "AR Drawing",
-  "Manifestation GPT",
-  "Reverse Singing",
-  "Lightning Tracker",
-  "Spice it",
-  "Flash Cards",
-  "Invoice Maker",
-  "Manga Infinity",
-  "Manga Reader",
-  "Hey Coach",
-  "VR 360",
-  "Water Eject",
-  "Roomify",
-];
+export { APPS } from "./apps";
 
 // Deterministic color per app for the letter tile.
 const TILE_COLORS = [

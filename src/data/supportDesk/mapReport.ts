@@ -1,16 +1,7 @@
-import type { CategoryKey, FeedbackRequest, RequestStatus } from "@/types";
-import type { SupportDeskReport, SupportDeskStatus } from "./client";
+import type { FeedbackRequest, RequestStatus } from "../../types.js";
+import { categoryHint } from "../inAppCategory.js";
+import type { SupportDeskReport, SupportDeskStatus } from "./client.js";
 
-// The support-desk category is picked by the end user in-app, so it is a
-// classification hint, not ground truth — confidence stays 0 until the AI
-// classification stage has run on the record.
-function categoryHint(title: string | undefined): CategoryKey {
-  const t = (title ?? "").toLowerCase();
-  if (t.includes("bug")) return "bug";
-  if (t.includes("feature")) return "feature";
-  if (t.includes("subscription")) return "billing";
-  return "other";
-}
 
 const STATUS_MAP: Record<SupportDeskStatus, RequestStatus> = {
   pending: "new",

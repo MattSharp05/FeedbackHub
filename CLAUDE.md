@@ -19,8 +19,11 @@ human approval. **Live data only — no mock data.** In-app chat is ingested fro
 the support-desk API (`src/data/supportDesk/`), App Store reviews from Apple's
 public reviews feed (`src/data/appStore/`, fetched server-side by
 `api/app-store-reviews.ts` — a Vercel function, mirrored in dev by a Vite
-middleware — because Apple 403s browsers that fan out; edge-cached 1h); Email is "coming soon" (`live:
-false` in `SOURCES`). AI classification/drafting runs when configured (see below), and **nothing is
+middleware — because Apple 403s browsers that fan out; edge-cached 1h); Email is read from the Google Workspace support mailboxes over IMAP
+(`server/email.ts`, read-only, last 90 days; app passwords in `EMAIL_ACCOUNTS`),
+mapped by `src/data/email/mapEmail.ts`: automated `📱 App - Category - email`
+notifications become in-app (`chat`) items, other customer emails become
+`email` items attributed to an app by mailbox + app names in the text. AI classification/drafting runs when configured (see below), and **nothing is
 really sent** — reply sending is disabled.
 
 ## Non-negotiable architecture principle
@@ -174,7 +177,8 @@ tiny formatters like `ageLabel`.
 
 ## Likely next tasks (in priority order)
 
-1. Email ingestion (Google Workspace / Gmail API) once mailbox access is granted.
+1. Connect the production support-desk API (the current one is a sandbox); then
+   skip the 📱 notification emails so in-app reports aren't counted twice.
 2. Reply sending per source — deliberately not built; support-desk's
    `adminMessage` may reach users, so it needs an explicit go-ahead.
 3. Extract the trust model so send behavior keys off (category × source) rather

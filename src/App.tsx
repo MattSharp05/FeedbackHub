@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_AUTOMATION } from "@/data/constants";
 import { fetchSupportDeskRequests, syncSupportDeskStatus } from "@/data/supportDesk";
 import { loadAppStoreRequests } from "@/data/appStore";
+import { loadEmailRequests } from "@/data/email";
 import { applyAi, classifyRequests, loadAiState, saveStatus, type AiState } from "@/data/enrichment";
 import type {
   AutomationConfig,
@@ -23,6 +24,7 @@ const INGESTION: {
 }[] = [
   { label: "In-app chat", load: async () => ({ requests: await fetchSupportDeskRequests() }) },
   { label: "App Store", load: loadAppStoreRequests },
+  { label: "Email", load: loadEmailRequests },
 ];
 
 // Matches the server's per-request limit in api/classify.ts.
