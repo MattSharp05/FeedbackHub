@@ -40,6 +40,27 @@ export const UNKNOWN_APP = "Unknown app";
 // Automated in-app report notifications: "📱 Lyrix - Report a bug - user@example.com".
 const IN_APP_REPORT = /^📱\s*(.+?)\s+-\s+(.+?)\s+-\s+(\S+@\S+)\s*$/u;
 
+export function parseInAppReport(subject: string): { app: string; category: string; customer: string } | null {
+  const m = subject.match(IN_APP_REPORT);
+  return m ? { app: canonicalApp(m[1]), category: m[2], customer: m[3] } : null;
+}
+
+// Website contact-form notifications: subject `New message from "site"`, body
+// "Name: … Email: customer@… Message: …". The customer is the Email field, not
+// the sender.
+const CONTACT_FORM_SUBJECT = /^New message from\s+"?([^"]+?)"?\s*$/i;
+
+export function parseContactForm(
+  subject: string,
+  text: string,
+): { site: string; customer: string; message: string } | null {
+  const site = subject.match(CONTACT_FORM_SUBJECT)?.[1];
+  const customer = text.match(/^\s*E-?mail:\s*<?([^\s<>]+@[^\s<>]+?)>?\s*$/im)?.[1];
+  if (!site || !customer) return null;
+  const message = text.match(/(?:^|\n)\s*Message:\s*([\s\S]*?)(?:\n\s*-{2,}[\s\S]*)?$/i)?.[1]?.trim();
+  return { site, customer, message: message || text.trim() };
+}
+
 const SKIP_SENDER_LOCAL = /^(no-?reply|do-?not-?reply|mailer-daemon|postmaster|bounces?|notifications?|alerts?)\b/i;
 const SKIP_SENDER_DOMAINS = [
   "google.com",
@@ -95,9 +116,10 @@ function cleanBody(text: string): string {
 export function mapEmail(email: RawEmail): FeedbackRequest {
   const dateMs = Date.parse(email.date);
   const body = cleanBody(email.text);
-  const report = email.subject.match(IN_APP_REPORT);
+  const report = parseInAppReport(email.subject);
   const base = {
     id: `email:${email.id}`,
+    mailbox: email.mailbox,
     lang: "—",
     country: "—",
     device: null,
@@ -112,14 +134,24 @@ export function mapEmail(email: RawEmail): FeedbackRequest {
     ageMin: Number.isNaN(dateMs) ? 0 : Math.max(0, Math.round((Date.now() - dateMs) / 60_000)),
   };
   if (report) {
-    const [, app, category, customer] = report;
     return {
       ...base,
-      app: canonicalApp(app),
+      app: report.app,
       source: "chat",
-      category: categoryHint(category),
-      message: body || category,
-      replyEmail: customer,
+      category: categoryHint(report.category),
+      message: body || report.category,
+      replyEmail: report.customer,
+    };
+  }
+  const form = parseContactForm(email.subject, body);
+  if (form) {
+    return {
+      ...base,
+      app: attributeApp(email.mailbox, `${form.site}\n${form.message}`),
+      source: "email",
+      category: "other",
+      message: form.message,
+      replyEmail: form.customer,
     };
   }
   return {

@@ -46,7 +46,7 @@ function findNode(node: MessageStructureObject, type: string): MessageStructureO
 }
 
 /** The part holding the readable text: plain text, else HTML. */
-function findText(structure: MessageStructureObject): TextPart | undefined {
+export function findText(structure: MessageStructureObject): TextPart | undefined {
   const plain = findNode(structure, "text/plain");
   const node = plain ?? findNode(structure, "text/html");
   if (!node) return undefined;
@@ -74,7 +74,7 @@ function decodeQuotedPrintable(text: string): Buffer {
 }
 
 // Body parts arrive still transfer-encoded (Gmail doesn't decode them).
-function decodePart(raw: Buffer, text: TextPart, alreadyDecoded: boolean): string {
+export function decodePart(raw: Buffer, text: TextPart, alreadyDecoded: boolean): string {
   let bytes = raw;
   if (!alreadyDecoded && text.encoding === "base64") {
     bytes = Buffer.from(raw.toString("latin1").replace(/[^A-Za-z0-9+/=]/g, ""), "base64");
@@ -88,7 +88,7 @@ function decodePart(raw: Buffer, text: TextPart, alreadyDecoded: boolean): strin
   }
 }
 
-function htmlToText(html: string): string {
+export function htmlToText(html: string): string {
   return html
     .replace(/<(style|script)[\s\S]*?<\/\1>/gi, "")
     .replace(/<(br|\/p|\/div|\/tr|\/li)[^>]*>/gi, "\n")

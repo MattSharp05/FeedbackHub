@@ -127,3 +127,13 @@ export async function saveStatus(db: Db, id: string, status: RequestStatus) {
     );
   check(error, "request_status");
 }
+
+export async function loadStatus(db: Db, id: string): Promise<RequestStatus | null> {
+  const { data, error } = await db
+    .from("request_status")
+    .select("status")
+    .eq("request_id", id)
+    .maybeSingle();
+  check(error, "request_status");
+  return (data as { status: RequestStatus } | null)?.status ?? null;
+}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_AUTOMATION } from "@/data/constants";
 import { fetchSupportDeskRequests, syncSupportDeskStatus } from "@/data/supportDesk";
 import { loadAppStoreRequests } from "@/data/appStore";
-import { loadEmailRequests } from "@/data/email";
+import { loadEmailRequests, sendEmailReply } from "@/data/email";
 import { applyAi, classifyRequests, loadAiState, saveStatus, type AiState } from "@/data/enrichment";
 import type {
   AutomationConfig,
@@ -161,7 +161,7 @@ export default function App() {
   // source (and the database, when configured) accepted it.
   async function act(id: string, status: RequestStatus) {
     const target = requests.find((q) => q.id === id);
-    if (target?.source === "chat") {
+    if (target?.source === "chat" && !target.mailbox) {
       await syncSupportDeskStatus(target.id, target.status, status);
     }
     if (ai?.dbConfigured) {
@@ -169,6 +169,19 @@ export default function App() {
       setAi((a) => a && { ...a, statuses: { ...a.statuses, [id]: status } });
     }
     setSourceRequests((rs) => rs.map((q) => (q.id === id ? { ...q, status } : q)));
+    setOpenId(null);
+  }
+
+  // Throws if sending fails, leaving the drawer open with the error.
+  async function send(id: string, text: string) {
+    const target = requests.find((q) => q.id === id);
+    if (!target?.mailbox) throw new Error("This item can't be answered by email");
+    const { to, recorded } = await sendEmailReply(id, target.mailbox, text);
+    if (!recorded) {
+      setAiError(`Reply sent to ${to}, but it couldn't be marked as sent — don't send it again after reloading.`);
+    }
+    setAi((a) => a && { ...a, statuses: { ...a.statuses, [id]: "sent" } });
+    setSourceRequests((rs) => rs.map((q) => (q.id === id ? { ...q, status: "sent" } : q)));
     setOpenId(null);
   }
 
@@ -264,6 +277,7 @@ export default function App() {
           automation={automation}
           onClose={() => setOpenId(null)}
           onAct={act}
+          onSend={send}
         />
       )}
     </div>

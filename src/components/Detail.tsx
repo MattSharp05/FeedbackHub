@@ -54,17 +54,28 @@ export function Detail({
   automation,
   onClose,
   onAct,
+  onSend,
 }: {
   open: FeedbackRequest;
   automation: AutomationConfig;
   onClose: () => void;
   onAct: (id: string, status: RequestStatus) => Promise<void>;
+  onSend: (id: string, text: string) => Promise<void>;
 }) {
   const [draft, setDraft] = useState(open.draft);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const closed = open.status === "resolved" || open.status === "rejected";
+  const closed = open.status === "resolved" || open.status === "rejected" || open.status === "sent";
+  const byEmail = Boolean(open.mailbox && open.replyEmail);
+  const sendBlocked =
+    open.source === "appstore"
+      ? "Posting App Store responses needs App Store Connect API access."
+      : !byEmail
+        ? "Replies to support-desk reports aren't connected."
+        : !draft.trim()
+          ? "Write a reply first."
+          : null;
 
   // On success the parent closes the drawer, so only the failure path
   // touches local state.
@@ -73,6 +84,18 @@ export function Detail({
     setError(null);
     try {
       await onAct(open.id, status);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setBusy(false);
+    }
+  }
+  async function send() {
+    if (sendBlocked) return;
+    if (!window.confirm(`Send this reply to ${open.replyEmail} from ${open.mailbox}?`)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onSend(open.id, draft);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
@@ -216,7 +239,9 @@ export function Detail({
             <SrcIcon size={14} style={{ color: src.color }} className="shrink-0" />
             <span>
               Delivered via{" "}
-              <span className="font-medium text-[#42403B]">{src.deliverVia}</span>
+              <span className="font-medium text-[#42403B]">
+                {byEmail ? `email to ${open.replyEmail} from ${open.mailbox}` : src.deliverVia}
+              </span>
             </span>
             {src.note && (
               <span className="ml-auto whitespace-nowrap rounded-[5px] bg-[#FCEFDB] px-2 py-0.5 text-[11.5px] text-[#B45309]">
@@ -257,11 +282,12 @@ export function Detail({
             ) : (
               <>
                 <button
-                  disabled
-                  title="Reply sending isn't connected yet"
-                  className="inline-flex cursor-default items-center gap-1.5 rounded-lg border-none bg-[#2563EB] px-[15px] py-2 text-[13px] font-semibold text-white opacity-40"
+                  onClick={send}
+                  disabled={busy || sendBlocked !== null}
+                  title={sendBlocked ?? undefined}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-none bg-[#2563EB] px-[15px] py-2 text-[13px] font-semibold text-white disabled:cursor-default disabled:opacity-40"
                 >
-                  <Send size={14} /> {src.sendLabel}
+                  <Send size={14} /> {byEmail ? "Approve & send email" : src.sendLabel}
                 </button>
                 <button
                   onClick={() => run("approved")}
@@ -288,8 +314,11 @@ export function Detail({
             )}
           </div>
           <div className="mt-2 text-[11.5px] text-[#A8A29A]">
-            Reply sending isn't connected yet — nothing is sent to the user.
+            {byEmail
+              ? `Sending emails ${open.replyEmail} from ${open.mailbox}, after you confirm.`
+              : `Reply sending isn't available here. ${sendBlocked ?? ""}`}
             {open.source === "chat" &&
+              !open.mailbox &&
               " Resolve, reject and reopen sync to support-desk."}
           </div>
         </div>

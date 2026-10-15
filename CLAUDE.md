@@ -23,8 +23,14 @@ middleware — because Apple 403s browsers that fan out; edge-cached 1h); Email 
 (`server/email.ts`, read-only, newest 50 per mailbox from the last 30 days; app passwords in `EMAIL_ACCOUNTS`),
 mapped by `src/data/email/mapEmail.ts`: automated `📱 App - Category - email`
 notifications become in-app (`chat`) items, other customer emails become
-`email` items attributed to an app by mailbox + app names in the text. AI classification/drafting runs when configured (see below), and **nothing is
-really sent** — reply sending is disabled.
+`email` items attributed to an app by mailbox + app names in the text. AI classification/drafting runs when configured (see below).
+**Replies are sent only for email-sourced items** (customer emails, 📱 in-app
+report emails, website contact forms), from the support mailbox the item
+arrived in, after a human confirms (`api/send-reply.ts` → `server/email-reply.ts`).
+The server finds the original email by Message-ID and takes the recipient from
+it, never from the caller; a second send for the same item is refused. App Store
+responses (need App Store Connect API keys) and support-desk replies are not
+connected. Nothing is ever auto-sent, whatever the Automation trust mode says.
 
 ## Non-negotiable architecture principle
 
@@ -84,12 +90,12 @@ callbacks. When adding features, follow this: lift state to `App`, derive with
   appends its normalized rows on load, failures surface in a banner), plus `view`,
   `activeApp`, `openId`, `automation`, and the filter state (`query`,
   `catFilter`, `sourceFilter`).
-- **The only mutation** is `act(id, status)` — for in-app chat it first writes the
+- **Status changes** go through `act(id, status)` — for support-desk items it first writes the
   status back to support-desk (`syncSupportDeskStatus`, status only — it cannot
   set `adminMessage`, so nothing reaches users), then maps over `requests` to
   change one item's `status` and closes the drawer. A failed write-back throws
-  and the drawer shows the error. Reply sending is disabled in the UI. All approve/reject/send actions in
-  the Detail drawer funnel through this. There is no other way requests change.
+  and the drawer shows the error. Sending a reply goes through `send(id, text)`,
+  which marks the item `sent`. These are the only ways requests change.
 - **Derived, not stored:** `filtered` (app + category + source + search, sorted
   by `ageMin`), `stats` (totals/needs/auto + per-category counts), and
   `pendingByApp` (sidebar badge counts) are all recomputed via `useMemo` from
@@ -179,8 +185,8 @@ tiny formatters like `ageLabel`.
 
 1. Connect the production support-desk API (the current one is a sandbox); then
    skip the 📱 notification emails so in-app reports aren't counted twice.
-2. Reply sending per source — deliberately not built; support-desk's
-   `adminMessage` may reach users, so it needs an explicit go-ahead.
+2. Reply sending for App Store reviews (App Store Connect API keys) and for
+   production support-desk items.
 3. Extract the trust model so send behavior keys off (category × source) rather
    than category alone (an App Store reply is public; an email reply isn't).
 4. Reporting: compute the Overview's "Needs attention" insights from the

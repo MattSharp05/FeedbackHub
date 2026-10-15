@@ -4,7 +4,8 @@
   "functions": {
     "api/app-store-reviews.ts": { "maxDuration": 60 },
     "api/classify.ts": { "maxDuration": 60 },
-    "api/email-requests.ts": { "maxDuration": 60 }
+    "api/email-requests.ts": { "maxDuration": 60 },
+    "api/send-reply.ts": { "maxDuration": 60 }
   },
   "rewrites": [
     {

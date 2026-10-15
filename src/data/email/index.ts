@@ -19,3 +19,19 @@ export async function loadEmailRequests(): Promise<{ requests: FeedbackRequest[]
         : undefined,
   };
 }
+
+/** Send an approved reply; the server picks the recipient from the original email. */
+export async function sendEmailReply(
+  id: string,
+  mailbox: string,
+  text: string,
+): Promise<{ to: string; recorded: boolean }> {
+  const res = await fetch("/api/send-reply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, mailbox, text }),
+  });
+  const data = (await res.json().catch(() => ({}))) as { error?: string; to?: string; recorded?: boolean };
+  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+  return { to: data.to ?? "", recorded: data.recorded ?? true };
+}

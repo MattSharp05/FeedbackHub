@@ -9,13 +9,15 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "email:test": "tsx --env-file-if-exists=.env.local scripts/email-test.ts",
-    "email:check": "tsx --env-file-if-exists=.env.local scripts/email-check.ts"
+    "email:check": "tsx --env-file-if-exists=.env.local scripts/email-check.ts",
+    "email:send-test": "tsx --env-file-if-exists=.env.local scripts/email-send-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",
     "@supabase/supabase-js": "^2.117.3",
     "imapflow": "^2.3.0",
     "lucide-react": "^0.454.0",
+    "nodemailer": "^10.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zod": "^4.6.5"
@@ -23,6 +25,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.20.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

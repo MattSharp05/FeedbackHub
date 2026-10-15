@@ -75,6 +75,8 @@ export interface FeedbackRequest {
   ageMin: number;
   /** Reply address when the source provides one (used at send time). */
   replyEmail?: string | null;
+  /** Support mailbox the item arrived in; replies are sent from it. */
+  mailbox?: string;
 }
 
 /** AI classification and drafted reply for one request. */

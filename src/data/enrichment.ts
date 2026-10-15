@@ -69,7 +69,8 @@ export function applyAi(
   saved: RequestStatus | undefined,
 ): FeedbackRequest {
   let next = e ? { ...q, ...e, status: q.status === "new" ? ("drafted" as const) : q.status } : q;
-  const sourceOwnsStatus = q.source === "chat" && saved !== "approved" && saved !== "drafted";
+  const fromSupportDesk = q.source === "chat" && !q.mailbox;
+  const sourceOwnsStatus = fromSupportDesk && saved !== "approved" && saved !== "drafted";
   if (saved && saved !== "new" && q.status === "new" && !sourceOwnsStatus) {
     next = { ...next, status: saved };
   }
