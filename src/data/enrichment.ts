@@ -23,7 +23,12 @@ export async function loadAiState(): Promise<AiState> {
 
 export async function classifyRequests(
   requests: FeedbackRequest[],
-): Promise<{ enrichment: Record<string, Enrichment>; failed: string[] }> {
+): Promise<{
+  enrichment: Record<string, Enrichment>;
+  failed: string[];
+  /** Statuses the server set while classifying (e.g. auto-closed non-feedback). */
+  statuses: Record<string, RequestStatus>;
+}> {
   const res = await fetch("/api/classify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

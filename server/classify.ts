@@ -29,6 +29,11 @@ export interface ClassifyItem {
 }
 
 const Output = z.object({
+  is_customer_feedback: z
+    .boolean()
+    .describe(
+      "False for marketing, sales or vendor pitches, newsletters, partnership offers, automated notices, and anything else not written by a user of the app.",
+    ),
   category: z.enum(CATEGORY_KEYS),
   confidence: z.number().describe("Probability from 0 to 1 that the category is right."),
   language: z.string().describe("ISO 639-1 code of the customer's message, uppercase, e.g. EN, ES, JA."),
@@ -103,7 +108,9 @@ export const aiConfigured = client !== null;
 
 const orNull = (s: string | null) => (s && s.trim() ? s : null);
 
-export async function classifyItem(item: ClassifyItem): Promise<Enrichment> {
+export async function classifyItem(
+  item: ClassifyItem,
+): Promise<{ enrichment: Enrichment; isCustomerFeedback: boolean }> {
   if (!client) throw new Error("ANTHROPIC_API_KEY is not set");
   const response = await client.messages.parse({
     model: MODEL,
@@ -117,12 +124,17 @@ export async function classifyItem(item: ClassifyItem): Promise<Enrichment> {
     throw new Error(`no structured output (stop_reason: ${response.stop_reason})`);
   }
   return {
-    category: out.category,
-    confidence: Math.min(1, Math.max(0, out.confidence)),
-    lang: out.language.trim().toUpperCase().slice(0, 2) || "—",
-    translation: orNull(out.english_translation),
-    action: out.action_item,
-    draft: out.reply,
-    draftTranslation: orNull(out.reply_english_translation),
+    isCustomerFeedback: out.is_customer_feedback,
+    enrichment: {
+      category: out.category,
+      confidence: Math.min(1, Math.max(0, out.confidence)),
+      lang: out.language.trim().toUpperCase().slice(0, 2) || "—",
+      translation: orNull(out.english_translation),
+      action: out.is_customer_feedback
+        ? out.action_item
+        : `Not customer feedback — closed automatically. ${out.action_item}`,
+      draft: out.reply,
+      draftTranslation: orNull(out.reply_english_translation),
+    },
   };
 }

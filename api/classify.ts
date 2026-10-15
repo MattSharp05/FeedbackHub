@@ -1,4 +1,4 @@
-import { db as database, loadEnrichment, saveEnrichment } from "../server/db.js";
+import { db as database, loadEnrichment, saveEnrichment, saveStatus } from "../server/db.js";
 import {
   aiConfigured,
   CATEGORY_KEYS,
@@ -6,7 +6,7 @@ import {
   MODEL,
   type ClassifyItem,
 } from "../server/classify.js";
-import type { CategoryKey, SourceKey } from "../src/types.js";
+import type { CategoryKey, RequestStatus, SourceKey } from "../src/types.js";
 
 // Small batches keep each call well inside the function time limit and a new
 // Anthropic account's rate limits; the browser sends batches one at a time.
@@ -57,13 +57,20 @@ export async function POST(request: Request): Promise<Response> {
     );
     const todo = items.filter((i) => !enrichment[i.id]);
     const failed: string[] = [];
+    // Direct emails include vendor pitches and newsletters; those are closed
+    // (reversibly) so they don't crowd the queue. Other sources stay open.
+    const statuses: Record<string, RequestStatus> = {};
     for (let i = 0; i < todo.length; i += IN_FLIGHT) {
       await Promise.all(
         todo.slice(i, i + IN_FLIGHT).map(async (item) => {
           try {
-            const e = await classifyItem(item);
+            const { enrichment: e, isCustomerFeedback } = await classifyItem(item);
             await saveEnrichment(db, item.id, e, MODEL);
             enrichment[item.id] = e;
+            if (!isCustomerFeedback && item.source === "email") {
+              await saveStatus(db, item.id, "rejected");
+              statuses[item.id] = "rejected";
+            }
           } catch (err) {
             console.error(`classify ${item.id} failed`, err);
             failed.push(item.id);
@@ -71,7 +78,7 @@ export async function POST(request: Request): Promise<Response> {
         }),
       );
     }
-    return Response.json({ enrichment, failed });
+    return Response.json({ enrichment, failed, statuses });
   } catch (err) {
     return Response.json({ error: String(err) }, { status: 502 });
   }

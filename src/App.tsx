@@ -98,8 +98,15 @@ export default function App() {
       for (let i = 0; i < todo.length; i += CLASSIFY_BATCH) {
         const batch = todo.slice(i, i + CLASSIFY_BATCH);
         try {
-          const { enrichment, failed } = await classifyRequests(batch);
-          setAi((a) => a && { ...a, enrichment: { ...a.enrichment, ...enrichment } });
+          const { enrichment, failed, statuses } = await classifyRequests(batch);
+          setAi(
+            (a) =>
+              a && {
+                ...a,
+                enrichment: { ...a.enrichment, ...enrichment },
+                statuses: { ...a.statuses, ...statuses },
+              },
+          );
           if (failed.length > 0) setAiError(`AI couldn't classify ${failed.length} item(s); they'll be retried on the next load.`);
         } catch (err) {
           setAiError(String(err));
