@@ -7,11 +7,12 @@ interface MailAccount {
   pass: string;
 }
 
-// EMAIL_ACCOUNTS: "support@a.com:apppassword,support@b.com:apppassword".
-// Google shows app passwords with spaces; those are dropped.
+// EMAIL_ACCOUNTS: "support@a.com:apppassword,support@b.com:apppassword"
+// (commas or new lines between entries). Google shows app passwords with
+// spaces; those are dropped.
 export function parseAccounts(value: string | undefined): MailAccount[] {
   return (value ?? "")
-    .split(",")
+    .split(/[,\n]/)
     .map((entry) => {
       const i = entry.indexOf(":");
       return {
@@ -28,13 +29,63 @@ const MAX_AGE_DAYS = 30;
 const MAX_PER_MAILBOX = 50;
 const MAX_BODY_BYTES = 20_000;
 
-function findPart(node: MessageStructureObject, type: string): string | undefined {
-  if (node.type === type) return node.part ?? "1";
+interface TextPart {
+  part: string;
+  html: boolean;
+  encoding: string;
+  charset: string;
+}
+
+function findNode(node: MessageStructureObject, type: string): MessageStructureObject | undefined {
+  if (node.type === type) return node;
   for (const child of node.childNodes ?? []) {
-    const found = findPart(child, type);
+    const found = findNode(child, type);
     if (found) return found;
   }
   return undefined;
+}
+
+/** The part holding the readable text: plain text, else HTML. */
+function findText(structure: MessageStructureObject): TextPart | undefined {
+  const plain = findNode(structure, "text/plain");
+  const node = plain ?? findNode(structure, "text/html");
+  if (!node) return undefined;
+  return {
+    part: node.part ?? "1",
+    html: !plain,
+    encoding: (node.encoding ?? "7bit").toLowerCase(),
+    charset: node.parameters?.charset ?? "utf-8",
+  };
+}
+
+function decodeQuotedPrintable(text: string): Buffer {
+  const s = text.replace(/=\r?\n/g, "");
+  const bytes: number[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const hex = s.slice(i + 1, i + 3);
+    if (s[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(hex)) {
+      bytes.push(parseInt(hex, 16));
+      i += 2;
+    } else {
+      bytes.push(s.charCodeAt(i) & 0xff);
+    }
+  }
+  return Buffer.from(bytes);
+}
+
+// Body parts arrive still transfer-encoded (Gmail doesn't decode them).
+function decodePart(raw: Buffer, text: TextPart, alreadyDecoded: boolean): string {
+  let bytes = raw;
+  if (!alreadyDecoded && text.encoding === "base64") {
+    bytes = Buffer.from(raw.toString("latin1").replace(/[^A-Za-z0-9+/=]/g, ""), "base64");
+  } else if (!alreadyDecoded && text.encoding === "quoted-printable") {
+    bytes = decodeQuotedPrintable(raw.toString("latin1"));
+  }
+  try {
+    return new TextDecoder(text.charset).decode(bytes);
+  } catch {
+    return bytes.toString("utf8");
+  }
 }
 
 function htmlToText(html: string): string {
@@ -70,7 +121,14 @@ async function readMailbox(account: MailAccount): Promise<RawEmail[]> {
       const recent = uids.slice(-MAX_PER_MAILBOX);
       if (recent.length === 0) return [];
 
-      const candidates: { uid: number; date: string; from: string; subject: string; structure?: MessageStructureObject; messageId?: string }[] = [];
+      const candidates: {
+        uid: number;
+        date: string;
+        from: string;
+        subject: string;
+        text?: TextPart;
+        messageId?: string;
+      }[] = [];
       for await (const msg of client.fetch(recent.join(","), { envelope: true, bodyStructure: true }, { uid: true })) {
         const email = {
           mailbox: account.user,
@@ -83,32 +141,41 @@ async function readMailbox(account: MailAccount): Promise<RawEmail[]> {
           date: msg.envelope?.date ? new Date(msg.envelope.date).toISOString() : "",
           from: email.fromAddress,
           subject: email.subject,
-          structure: msg.bodyStructure,
+          text: msg.bodyStructure ? findText(msg.bodyStructure) : undefined,
           messageId: msg.envelope?.messageId,
         });
       }
 
-      const emails: RawEmail[] = [];
+      // One batched fetch per body-part id instead of a round trip per email.
+      const bodies = new Map<number, string>();
+      const byPart = new Map<string, typeof candidates>();
       for (const c of candidates) {
-        const plain = c.structure && findPart(c.structure, "text/plain");
-        const html = !plain && c.structure ? findPart(c.structure, "text/html") : undefined;
-        let text = "";
-        const part = plain ?? html;
-        if (part) {
-          const download = await client.download(String(c.uid), part, { uid: true, maxBytes: MAX_BODY_BYTES });
-          if (download.content) {
-            for await (const chunk of download.content) text += chunk.toString();
-          }
-        }
-        emails.push({
-          id: c.messageId || `${account.user}:${c.uid}`,
-          mailbox: account.user,
-          date: c.date,
-          fromAddress: c.from,
-          subject: c.subject,
-          text: html ? htmlToText(text) : text,
-        });
+        if (!c.text) continue;
+        byPart.set(c.text.part, [...(byPart.get(c.text.part) ?? []), c]);
       }
+      for (const [part, group] of byPart) {
+        const uids = group.map((c) => c.uid);
+        for await (const msg of client.fetch(
+          uids.join(","),
+          { bodyParts: [{ key: part, maxLength: MAX_BODY_BYTES }] },
+          { uid: true },
+        )) {
+          const c = group.find((g) => g.uid === msg.uid);
+          const raw = msg.bodyParts ? [...msg.bodyParts.values()][0] : undefined;
+          if (!c?.text || !raw) continue;
+          const decoded = decodePart(raw, c.text, (msg.binaryParts?.size ?? 0) > 0);
+          bodies.set(msg.uid, c.text.html ? htmlToText(decoded) : decoded);
+        }
+      }
+
+      const emails: RawEmail[] = candidates.map((c) => ({
+        id: c.messageId || `${account.user}:${c.uid}`,
+        mailbox: account.user,
+        date: c.date,
+        fromAddress: c.from,
+        subject: c.subject,
+        text: bodies.get(c.uid) ?? "",
+      }));
       return emails;
     } finally {
       lock.release();

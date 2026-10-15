@@ -1,9 +1,9 @@
 // Checks email access for one mailbox by listing its 10 most recent emails.
-// Put EMAIL_USER and EMAIL_APP_PASSWORD in .env.local, then run:
-//   npm run email:test
-// Add `-- --sample` to also print the body of the newest automated in-app
-// report (subject starting with 📱).
+// Uses the first mailbox in EMAIL_ACCOUNTS (.env.local), or the one named with
+// `-- --mailbox=support@example.com`. Add `-- --sample` to also print the body
+// of the newest automated in-app report (subject starting with 📱).
 import { ImapFlow, type MessageStructureObject } from "imapflow";
+import { parseAccounts } from "../server/email.js";
 
 const showSample = process.argv.includes("--sample");
 
@@ -16,12 +16,14 @@ function findPart(node: MessageStructureObject, type: string): string | undefine
   return undefined;
 }
 
-const user = process.env.EMAIL_USER;
-const pass = process.env.EMAIL_APP_PASSWORD;
-if (!user || !pass) {
-  console.error("Add EMAIL_USER and EMAIL_APP_PASSWORD to .env.local first.");
+const wanted = process.argv.find((a) => a.startsWith("--mailbox="))?.slice("--mailbox=".length).toLowerCase();
+const all = parseAccounts(process.env.EMAIL_ACCOUNTS);
+const account = wanted ? all.find((a) => a.user === wanted) : all[0];
+if (!account) {
+  console.error(wanted ? `${wanted} isn't in EMAIL_ACCOUNTS.` : "Add EMAIL_ACCOUNTS to .env.local first.");
   process.exit(1);
 }
+const { user, pass } = account;
 
 const client = new ImapFlow({
   host: "imap.gmail.com",
